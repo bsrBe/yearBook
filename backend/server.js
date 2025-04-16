@@ -1,18 +1,25 @@
-const express = require("express")
-const authRoutes = require("./routes/authRoutes")
-const cookieParser = require("cookie-parser");
-const cors = require("cors");
-const app = express();
-const swaggerUi = require('swagger-ui-express');
-const connectDB = require("./config/db")
-const YAML = require("yamljs");
+import express from "express";
+import mongoose from "mongoose";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import signatureRoutes from "./routes/signatureRoutes.js";
+import memoryRoutes from "./routes/memoryRoutes.js";
+import commentRoutes from "./routes/commentRoutes.js";
+import  connectDB  from "./config/db.js";
+import swaggerUi from 'swagger-ui-express';
+import YAML from "yamljs";
+import * as dotenv from 'dotenv';
 
-require("dotenv").config({path:'./config/.env'});
+const app = express();
+
+dotenv.config({ path: "./config/.env" });
 
 const allowedOrigins = ["http://localhost:5173", "http://localhost:4173", "http://localhost:5000"];
 
 app.use(
-  cors({
+    cors({
     origin: function (origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -44,6 +51,10 @@ app.use(express.json());
 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/signatures", signatureRoutes);
+app.use("/api/memories", memoryRoutes);
+app.use("/api/comments", commentRoutes);
 
 connectDB();
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Check, BookOpen } from "lucide-react"
@@ -22,26 +21,45 @@ interface ShareMemoryModalProps {
 
 export function ShareMemoryModal({ open, onOpenChange }: ShareMemoryModalProps) {
   const [content, setContent] = useState("")
-  const [author, setAuthor] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [isError, setIsError] = useState(false)
 
-  const handleSubmit = () => {
+  // Dummy variables for JWT and User ID - Replace with actual data fetching logic
+  const dummyJwtToken = "YOUR_JWT_TOKEN"; // Replace with actual JWT token retrieval
+  const dummyUserId = "YOUR_USER_ID"; // Replace with actual user ID retrieval
+
+  const handleSubmit = async () => {
     setIsSubmitting(true)
+    setIsError(false)
 
-    // Simulate API call to save the memory
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${dummyJwtToken}` // Include JWT token in the header
+        },
+        body: JSON.stringify({ content }), // Send content and authorId
+      })
+
+      if (!response.ok) {
+        setIsError(true)
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       setIsSuccess(true)
-
-      // Reset form after success
-      setTimeout(() => {
-        setIsSuccess(false)
-        setContent("")
-        setAuthor("")
-        onOpenChange(false)
-      }, 1500)
-    }, 1000)
+    } catch (error) {
+      setIsError(true)
+      console.error("Failed to share memory:", error)
+    } finally {
+      setIsSubmitting(false)
+        setContent("");
+        setTimeout(() => {
+        setIsSuccess(false);
+        setContent("");
+      }, 2000); // added this curly brace
+    }
   }
 
   return (
@@ -52,7 +70,7 @@ export function ShareMemoryModal({ open, onOpenChange }: ShareMemoryModalProps) 
             <BookOpen className="h-5 w-5 text-primary" />
             Share Your Memory
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-muted-foreground">
             Share a special memory, quote, or thought that captures your college experience.
           </DialogDescription>
         </DialogHeader>

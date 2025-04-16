@@ -1,11 +1,48 @@
+"use client"
+
 import Link from "next/link"
+import Image from "next/image"
+import { useEffect, useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { PageTransition } from "@/components/page-transition"
 import { FloatingIcon } from "@/components/floating-icon"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { GraduationCap, Star, Heart } from "lucide-react"
 
+interface Memory {
+  id: string
+  title: string
+  content: string
+  imageUrl: string
+}
+
 export default function Home() {
+  const [memories, setMemories] = useState<Memory[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchMemories = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/memories`)
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.statusText}`)
+        }
+        const data = await response.json()
+        setMemories(data.slice(0, 3)) // Limit to the first 3 memories
+      } catch (err: any) {
+        setError(err.message || "An unexpected error occurred.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchMemories()
+  }, [])
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -48,24 +85,50 @@ export default function Home() {
             <div className="container">
               <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Cherished Moments</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[1, 2, 3].map((i) => (
+                {isLoading &&
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="bg-background rounded-lg p-6 shadow-md">
+                      <Skeleton className="aspect-video rounded-md mb-4" />
+                      <Skeleton className="h-6 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-5/6" />
+                    </div>
+                  ))}
+
+                {!isLoading &&
+                  error && (
+                    <Alert variant="destructive">
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                {!isLoading &&
+                  !error &&
+                  memories.map((memory) => (
                   <div
-                    key={i}
+                    key={memory.id}
                     className="bg-background rounded-lg p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
                   >
                     <div className="aspect-video rounded-md overflow-hidden mb-4">
-                      <img
-                        src={`/placeholder.svg?height=300&width=500&text=Memory ${i}`}
-                        alt={`Memory ${i}`}
-                        className="w-full h-full object-cover"
-                      />
+                      {memory.imageUrl ? (
+                        <Image
+                          src={memory.imageUrl}
+                          alt={memory.title}
+                          width={500}
+                          height={300}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Image src="/placeholder.jpg" alt="Placeholder" width={500} height={300} className="w-full h-full object-cover" />
+                      )}
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Graduation Day</h3>
-                    <p className="text-muted-foreground">
-                      The day we've all been waiting for, filled with joy, tears, and new beginnings.
-                    </p>
+                    <h3 className="text-xl font-bold mb-2">{memory.title}</h3>
+                    <p className="text-muted-foreground">{memory.content}</p>
                   </div>
                 ))}
+
+
               </div>
               <div className="text-center mt-12">
                 <Button asChild variant="outline">

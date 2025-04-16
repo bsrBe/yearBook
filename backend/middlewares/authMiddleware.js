@@ -1,7 +1,8 @@
-const jwt = require("jsonwebtoken");
-const User = require("../models/userModel");
+import jwt from "jsonwebtoken";
+import User from "../models/userModel.js";
 
-const protect = async (req, res, next) => {
+
+const protect = async (req, res, next) =>{
   // Try to get the token from the cookies, specifically the "cookieToken" cookie
 
   const token = req.cookies.cookieToken;
@@ -25,7 +26,4 @@ const protect = async (req, res, next) => {
     return res.status(401).json({ message: "Not authorized, token failed" });
   }
 };
-
-
-
-module.exports =  protect;
+export default protect;

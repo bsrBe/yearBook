@@ -1,29 +1,24 @@
-const express = require("express")
-const router = express.Router()
-const protect = require("../middlewares/authMiddleware")
-const cookieParser = require("cookie-parser");
+import express from "express";
+const router = express.Router();
+import protect from "../middlewares/authMiddleware.js";
+import cookieParser from "cookie-parser";
 
 router.use(cookieParser());
-
-
-
 //  @swagger
 
-
-
-const  {
-    register,
-    Login,
+// Import individual functions from the controller
+import {
+    registerUser,
+    loginUser,
     getMe,
     forgotPassword,
     resetPassword,
     confirmEmail
-} = require("../controllers/authController")
+} from "../controllers/authController.js";
 
-router.get("/me" , protect ,getMe)
-router.post("/register" , register)
-router.post("/login" , Login)
-router.post("/forgotPassword" ,protect,  forgotPassword)
-router.put("/resetPassword/:token", protect ,resetPassword)
-router.get("/confirmEmail/:token", confirmEmail);
-module.exports = router
+// Define routes
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+
+// Export the router using ES module syntax
+export default router;

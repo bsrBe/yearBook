@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 
 import { useRouter } from "next/navigation"
@@ -10,36 +10,11 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Heart, Share2, BookmarkPlus, Pen } from "lucide-react"
 import { motion } from "framer-motion"
 import { SignYearbookModal } from "@/components/sign-yearbook-modal"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
 
-// Mock student data - in a real app, you'd fetch this from an API
-const getStudent = (id: string) => {
-  const studentId = Number.parseInt(id)
-  return {
-    id: studentId,
-    name: `Student ${studentId}`,
-    quote:
-      "This is where I'll leave my mark on the world. The future belongs to those who believe in the beauty of their dreams.",
-    department: studentId % 3 === 0 ? "Science" : studentId % 3 === 1 ? "Arts" : "Business",
-    image: `/placeholder.svg?height=600&width=600&text=Student ${studentId}`,
-    hobbies: ["Photography", "Reading", "Hiking"],
-    rememberFor: "Always bringing snacks to study sessions",
-    achievements: ["Dean's List", "Student Council", "Volunteer of the Year"],
-    signatures: [
-      {
-        id: 1,
-        author: "Best Friend",
-        message: "Thanks for all the memories! Stay in touch!",
-        style: "casual",
-      },
-      {
-        id: 2,
-        author: "Professor Smith",
-        message: "It was a pleasure having you in class. Your future is bright!",
-        style: "elegant",
-      },
-    ],
-  }
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
 
 export default function StudentPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -47,6 +22,45 @@ export default function StudentPage({ params }: { params: { id: string } }) {
   const [isSignModalOpen, setIsSignModalOpen] = useState(false)
 
   return (
+    <StudentContent id={params.id} />
+  )
+}
+
+interface Student {
+  _id: string;
+  name: string;
+  quote: string;
+  department: string;
+  image: string;
+  hobbies: string[];
+  rememberFor: string;
+  achievements: string[];
+  signatures: {
+    _id: string;
+    author: string;
+    message: string;
+    style: string;
+  }[];
+}
+
+const StudentContent = ({ id }: { id: string }) => {
+  const [student, setStudent] = useState<Student | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudent = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/users/${id}`);
+        const data = await response.json();
+        setStudent(data.user);
+      } catch (error) {
+        toast.error("Failed to load student data.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStudent();
+  }, [id]);
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <PageTransition>
@@ -63,16 +77,18 @@ export default function StudentPage({ params }: { params: { id: string } }) {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="rounded-2xl overflow-hidden shadow-lg border">
-                  <img src={student.image || "/placeholder.svg"} alt={student.name} className="w-full h-auto" />
-                </div>
+                {isLoading ? <Skeleton className="w-full h-[400px]" /> :
+                  <div className="rounded-2xl overflow-hidden shadow-lg border">
+                    <img src={student?.image || "/placeholder.svg"} alt={student?.name} className="w-full h-auto" />
+                  </div>
+                }
               </motion.div>
 
-              <motion.div
+                <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="space-y-6"
+                    className="space-y-6"
               >
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold mb-2">{student.name}</h1>
@@ -82,13 +98,13 @@ export default function StudentPage({ params }: { params: { id: string } }) {
                 </div>
 
                 <blockquote className="text-xl italic font-playfair border-l-4 border-primary pl-4 py-2">
-                  "{student.quote}"
+                    "{student.quote}"
                 </blockquote>
 
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Hobbies</h3>
-                    <div className="flex flex-wrap gap-2">
+                    {/* <div className="flex flex-wrap gap-2">
                       {student.hobbies.map((hobby, index) => (
                         <span
                           key={index}
@@ -97,17 +113,17 @@ export default function StudentPage({ params }: { params: { id: string } }) {
                           {hobby}
                         </span>
                       ))}
-                    </div>
+                    </div> */}
                   </div>
 
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Remember Me For</h3>
-                    <p className="text-muted-foreground">{student.rememberFor}</p>
+                    {/* <p className="text-muted-foreground">{student.rememberFor}</p> */}
                   </div>
 
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Achievements</h3>
-                    <ul className="list-disc list-inside text-muted-foreground">
+                   {/* <ul className="list-disc list-inside text-muted-foreground">
                       {student.achievements.map((achievement, index) => (
                         <li key={index}>{achievement}</li>
                       ))}
@@ -144,7 +160,7 @@ export default function StudentPage({ params }: { params: { id: string } }) {
               </div>
 
               <div className="grid gap-4">
-                {student.signatures.map((signature) => (
+               {/*  {student.signatures.map((signature) => (
                   <div key={signature.id} className="border rounded-lg p-6 bg-muted/20">
                     <blockquote
                       className={`mb-4 ${
@@ -159,9 +175,9 @@ export default function StudentPage({ params }: { params: { id: string } }) {
                     </blockquote>
                     <p className="text-right text-muted-foreground">— {signature.author}</p>
                   </div>
-                ))}
+                ))} */}
 
-                {student.signatures.length === 0 && (
+                {/* {student.signatures.length === 0 && (
                   <div className="text-center py-10 border rounded-lg">
                     <p className="text-muted-foreground">No signatures yet. Be the first to sign!</p>
                     <Button variant="outline" className="mt-4" onClick={() => setIsSignModalOpen(true)}>
@@ -169,7 +185,7 @@ export default function StudentPage({ params }: { params: { id: string } }) {
                     </Button>
                   </div>
                 )}
-              </div>
+               */}</div>
             </div>
           </div>
         </main>
@@ -198,3 +214,4 @@ export default function StudentPage({ params }: { params: { id: string } }) {
     </div>
   )
 }
+

@@ -1,0 +1,218 @@
+/**
+ * BACKEND IMPLEMENTATION GUIDE FOR YEARBOOK WEBSITE
+ *
+ * This file provides instructions for implementing a backend for the yearbook website.
+ * It's not meant to be imported into your application, but serves as documentation.
+ */
+
+/**
+ * 1. DATABASE SETUP
+ *
+ * Recommended: PostgreSQL with Prisma ORM
+ *
+ * Key Models:
+ *
+ * - User
+ *   - id: string (primary key)
+ *   - name: string
+ *   - email: string (unique)
+ *   - role: enum (STUDENT, FACULTY, ADMIN)
+ *   - department: string
+ *   - graduationYear: number
+ *   - profileImage: string (URL)
+ *   - quote: string
+ *   - hobbies: string[]
+ *   - rememberFor: string
+ *   - achievements: string[]
+ *   - createdAt: DateTime
+ *   - updatedAt: DateTime
+ *
+ * - Signature
+ *   - id: string (primary key)
+ *   - message: string
+ *   - style: enum (CASUAL, ELEGANT, BOLD)
+ *   - authorId: string (foreign key to User)
+ *   - recipientId: string (foreign key to User, nullable for general yearbook)
+ *   - createdAt: DateTime
+ *
+ * - Memory
+ *   - id: string (primary key)
+ *   - content: string
+ *   - authorId: string (foreign key to User)
+ *   - likes: number
+ *   - createdAt: DateTime
+ *   - updatedAt: DateTime
+ *
+ * - Comment
+ *   - id: string (primary key)
+ *   - content: string
+ *   - authorId: string (foreign key to User)
+ *   - memoryId: string (foreign key to Memory)
+ *   - createdAt: DateTime
+ */
+
+/**
+ * 2. API ENDPOINTS
+ *
+ * Using Next.js API Routes (app/api/*)
+ *
+ * Users:
+ * - GET /api/users - List all users (with pagination)
+ * - GET /api/users/:id - Get user details
+ * - POST /api/users - Create new user (with authentication)
+ * - PUT /api/users/:id - Update user (with authentication)
+ *
+ * Signatures:
+ * - GET /api/signatures?recipientId=:id - Get signatures for a user
+ * - POST /api/signatures - Create a new signature
+ *
+ * Memories:
+ * - GET /api/memories - List all memories (with pagination)
+ * - GET /api/memories/:id - Get memory details with comments
+ * - POST /api/memories - Create a new memory
+ * - POST /api/memories/:id/like - Like a memory
+ *
+ * Comments:
+ * - POST /api/memories/:id/comments - Add comment to a memory
+ * - DELETE /api/comments/:id - Delete a comment
+ */
+
+/**
+ * 3. AUTHENTICATION
+ *
+ * Recommended: NextAuth.js
+ *
+ * - Set up OAuth providers (Google, Microsoft, etc.)
+ * - Implement role-based access control
+ * - Protect API routes with authentication middleware
+ * - Create session management
+ */
+
+/**
+ * 4. FILE STORAGE
+ *
+ * Recommended: Vercel Blob or AWS S3
+ *
+ * - Set up secure upload endpoints for profile images
+ * - Generate signed URLs for uploads
+ * - Implement image optimization
+ */
+
+/**
+ * 5. IMPLEMENTATION STEPS
+ *
+ * 1. Set up your database with Prisma
+ *    - npm install prisma @prisma/client
+ *    - npx prisma init
+ *    - Define your schema in prisma/schema.prisma
+ *    - npx prisma migrate dev
+ *
+ * 2. Create API routes in app/api/
+ *    - Implement CRUD operations for each model
+ *    - Add validation with zod or similar
+ *    - Implement error handling
+ *
+ * 3. Set up authentication with NextAuth.js
+ *    - npm install next-auth
+ *    - Configure providers and callbacks
+ *    - Create protected routes
+ *
+ * 4. Connect frontend to backend
+ *    - Update frontend components to fetch data from API
+ *    - Implement loading states and error handling
+ *    - Add authentication UI components
+ *
+ * 5. Deploy
+ *    - Deploy to Vercel or similar platform
+ *    - Set up environment variables
+ *    - Configure database connection
+ */
+
+/**
+ * 6. EXAMPLE API ROUTE
+ *
+ * File: app/api/memories/route.ts
+ */
+
+/*
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { z } from 'zod'
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const page = parseInt(searchParams.get('page') || '1')
+  const limit = parseInt(searchParams.get('limit') || '10')
+  const skip = (page - 1) * limit
+  
+  try {
+    const memories = await prisma.memory.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+        _count: {
+          select: { comments: true },
+        },
+      },
+    })
+    
+    const total = await prisma.memory.count()
+    
+    return NextResponse.json({
+      memories,
+      pagination: {
+        total,
+        pages: Math.ceil(total / limit),
+        page,
+        limit,
+      },
+    })
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch memories' }, { status: 500 })
+  }
+}
+
+const MemorySchema = z.object({
+  content: z.string().min(1).max(500),
+})
+
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions)
+  
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
+  try {
+    const json = await request.json()
+    const { content } = MemorySchema.parse(json)
+    
+    const memory = await prisma.memory.create({
+      data: {
+        content,
+        author: {
+          connect: { id: session.user.id },
+        },
+      },
+    })
+    
+    return NextResponse.json(memory, { status: 201 })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 })
+    }
+    
+    return NextResponse.json({ error: 'Failed to create memory' }, { status: 500 })
+  }
+}
+*/

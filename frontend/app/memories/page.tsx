@@ -2,51 +2,134 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
-import { PageTransition } from "@/components/page-transition"
+import { PageTransition, PageLoading } from "@/components/page-transition"
 import { FloatingIcon } from "@/components/floating-icon"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"
 import { Star, Heart, MessageCircle, GraduationCap } from "lucide-react"
 import { motion } from "framer-motion"
+import { toast } from "@/components/ui/use-toast"
 import { ShareMemoryModal } from "@/components/share-memory-modal"
 
 // Extract student ID from author name (for demo purposes)
-const getStudentId = (author: string) => {
-  const match = author.match(/Student (\d+)/)
-  return match ? match[1] : null
+// const getStudentId = (author: string) => {
+//   const match = author.match(/Student (\d+)/)
+//   return match ? match[1] : null
+// }
+
+import { fetchUserDetails } from "@/lib/utils"
+
+export interface Memory {
+  id: string;
+  content: string;
+  authorId: string;
+  likes: string[];
+  comments: string[];
+  rotation?: number;
+  color?: string;
+  createdAt: Date;
 }
 
-// Mock memories data
-const memories = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  content:
-    "The memories we've made will last a lifetime. I'll never forget the late nights studying, the campus events, and all the friends I've made along the way.",
-  author: `Student ${i + 1}`,
-  likes: Math.floor(Math.random() * 50) + 1,
-  comments: Math.floor(Math.random() * 10),
-  rotation: Math.random() * 6 - 3, // Random rotation between -3 and 3 degrees
-  color:
-    i % 4 === 0
-      ? "bg-rosegold/20"
-      : i % 4 === 1
-        ? "bg-softblue/20"
-        : i % 4 === 2
-          ? "bg-lavender/20"
-          : "bg-dustypink/20",
-}))
-
 export default function MemoriesPage() {
+  const [memories, setMemories] = useState<Memory[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isError, setIsError] = useState(false)
+  const [users, setUsers] = useState<Record<string, any>>({});
+
+  const authorIds = useMemo(() => {
+    return Array.from(new Set(memories.map((memory) => memory.authorId)));
+  }, [memories]);
+
+  const fetchMemories = useCallback(async () => {
+    setIsLoading(true);
+    setIsError(false);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+      if (!apiUrl) {
+        throw new Error("API URL is not defined");
+      }
+      const response = await fetch(`${apiUrl}/api/memories`, {
+        method: "GET",
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch memories: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setMemories(data.memories);
+    } catch (error) {
+      setIsError(true);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem fetching memories. Please try again later.",
+      })
+      console.error("Failed to fetch memories:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMemories();
+  }, [fetchMemories]);
+
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      const usersData: Record<string, any> = {};
+
+      if (authorIds.length > 0) {
+        await Promise.all(
+          authorIds.map(async (authorId) => {
+            const user = await fetchUserDetails(authorId);
+            if (user) {
+              usersData[authorId] = user;
+            }
+          })
+        );
+
+        setUsers(usersData);
+      }
+    };
+
+    if (authorIds.length > 0) {
+      fetchAllUsers();
+    }
+  }, [authorIds]);
 
   const filteredMemories = memories.filter(
     (memory) =>
       memory.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      memory.author.toLowerCase().includes(searchQuery.toLowerCase()),
+      (users[memory.authorId]?.name || "Unknown Author")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+
   )
+  if (isLoading) {
+    return <PageLoading />;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-red-500">Failed to load memories.</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -88,7 +171,7 @@ export default function MemoriesPage() {
                 <motion.div
                   key={memory.id}
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  animate={{ opacity: 1, y: 0 }}                
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   style={
                     {
@@ -99,26 +182,27 @@ export default function MemoriesPage() {
                 >
                   <div className={`rounded-lg p-6 shadow-md ${memory.color} border`}>
                     <blockquote className="text-lg font-playfair italic mb-4">"{memory.content}"</blockquote>
-                    <div className="flex justify-between items-center">
-                      {/* Link to student profile if it's a student */}
-                      {getStudentId(memory.author) ? (
+                      <div className="flex justify-between items-center">
+                    {/* Link to student profile if it's a student */}
+                    {users[memory.authorId]?.id ? (
                         <Link
-                          href={`/students/${getStudentId(memory.author)}`}
+                          href={`/students/${users[memory.authorId]?.id}`}
                           className="font-medium hover:text-primary transition-colors"
                         >
-                          {memory.author}
+                          {users[memory.authorId]?.name || "Unknown Author"}
                         </Link>
-                      ) : (
-                        <p className="font-medium">{memory.author}</p>
+                      ) : (users[memory.authorId]?.name &&
+                        <p className="font-medium">{users[memory.authorId]?.name}</p> ||
+                         <p className="font-medium">Unknown Author</p>
                       )}
                       <div className="flex gap-3">
                         <button className="flex items-center text-sm text-muted-foreground hover:text-primary">
-                          <Heart className="h-4 w-4 mr-1" />
-                          {memory.likes}
+                          <Heart className="h-4 w-4 mr-1"/>
+                          {memory.likes.length}
                         </button>
                         <button className="flex items-center text-sm text-muted-foreground hover:text-primary">
                           <MessageCircle className="h-4 w-4 mr-1" />
-                          {memory.comments}
+                          {memory.comments.length}
                         </button>
                       </div>
                     </div>

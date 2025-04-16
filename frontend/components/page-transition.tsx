@@ -19,3 +19,9 @@ export function PageTransition({ children }: PageTransitionProps) {
     </motion.div>
   )
 }
+
+export function PageLoading() {
+  return (
+    <div>Loading...</div>
+  );
+}
